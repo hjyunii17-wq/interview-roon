@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>영상면접실 예약 시스템</title>
-  <!-- 1. Supabase 공식 라이브러리 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -112,7 +111,6 @@
   </div>
 </div>
 
-<!-- 1. 예약 신청 모달 -->
 <div class="modal" id="bookingModal">
   <div class="modal-content">
     <h3>영상면접실 예약 신청</h3>
@@ -137,7 +135,6 @@
   </div>
 </div>
 
-<!-- 2. 예약 내역 및 이용 주의사항 모달 -->
 <div class="modal" id="infoModal">
   <div class="modal-content">
     <h3 style="color: var(--primary);" id="infoModalTitle">예약 정보 및 이용 수칙</h3>
@@ -161,7 +158,6 @@
   </div>
 </div>
 
-<!-- 3. 퇴실 처리 모달 -->
 <div class="modal" id="checkoutModal">
   <div class="modal-content">
     <h3>🧹 영상면접실 퇴실 인증</h3>
@@ -180,7 +176,6 @@
   </div>
 </div>
 
-<!-- 4. 조교 사진 확인 모달 -->
 <div class="modal" id="photoViewModal">
   <div class="modal-content">
     <h3>📷 퇴실 인증 사진 확인</h3>
@@ -193,7 +188,6 @@
 </div>
 
 <script>
-  // 🔑 Supabase 정보 추가완료!
   const SUPABASE_URL = "https://sfvarsmscadhpntxiqvk.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_pb8QvRR4qJyO4a9HMhy_xQ_JKqi6mE8";
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -207,7 +201,6 @@
   const today = new Date();
   document.getElementById('dateSelect').value = today.toISOString().substring(0, 10);
 
-  // DB에서 데이터 조회
   async function getReservations() {
     try {
       const { data, error } = await _supabase.from('reservations').select('*');
@@ -230,12 +223,14 @@
     const todayZero = new Date();
     todayZero.setHours(0,0,0,0);
 
+    // 1. 요일 체크 (월~목만 이용 가능)
     const dayOfWeek = selectedDate.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
       showWarning('⚠️ 영상면접실은 월요일 ~ 목요일에만 이용할 수 있습니다.');
       return;
     }
 
+    // 2. 최소 1일 전(하루 전)까지 예약 가능
     const diffTime = selectedDate - todayZero;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays < 1) {
@@ -243,18 +238,28 @@
       return;
     }
 
+    // 3. 주차 오픈 체크 (오늘이 속한 이번 주 월요일 구하기)
+    const todayDay = todayZero.getDay();
+    const diffToTodayMon = (todayDay === 0 ? -6 : 1 - todayDay);
+    const todayMon = new Date(todayZero);
+    todayMon.setDate(todayZero.getDate() + diffToTodayMon);
+
+    // 선택한 날짜가 속한 주차의 월요일 구하기
     const selectedMon = new Date(selectedDate);
     selectedMon.setDate(selectedDate.getDate() - (dayOfWeek - 1));
 
-    const openFriday = new Date(selectedMon);
-    openFriday.setDate(selectedMon.getDate() - 3);
-    openFriday.setHours(0,0,0,0);
+    // 선택한 날짜가 "다음 주 이상"인 미래 주차일 경우에만 금요일 오픈 규칙 적용
+    if (selectedMon > todayMon) {
+      const openFriday = new Date(selectedMon);
+      openFriday.setDate(selectedMon.getDate() - 3); // 오픈 금요일
+      openFriday.setHours(0,0,0,0);
 
-    if (todayZero < openFriday) {
-      const month = openFriday.getMonth() + 1;
-      const day = openFriday.getDate();
-      showWarning(`⚠️ 해당 주차 예약은 ${month}월 ${day}일(금)에 오픈됩니다.`);
-      return;
+      if (todayZero < openFriday) {
+        const month = openFriday.getMonth() + 1;
+        const day = openFriday.getDate();
+        showWarning(`⚠️ 해당 주차 예약은 ${month}월 ${day}일(금)에 오픈됩니다.`);
+        return;
+      }
     }
 
     document.getElementById('warningMsg').style.display = 'none';
