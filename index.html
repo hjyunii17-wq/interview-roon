@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영상면접실 예약 시스템</title>
+  <style>
+    :root {
+      --primary: #2b6cb0;
+      --primary-hover: #2c5282;
+      --bg-gray: #f7fafc;
+      --border-color: #e2e8f0;
+      --disabled: #edf2f7;
+    }
+    * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { background-color: var(--bg-gray); margin: 0; padding: 20px; color: #2d3748; }
+    .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; margin-bottom: 25px; }
+    h1 { margin: 0; font-size: 1.4rem; color: #1a202c; }
+    
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-admin { background: #4a5568; color: white; }
+    .btn-danger { background: #e53e3e; color: white; }
+    .btn-success { background: #38a169; color: white; }
+    .btn-warning { background: #dd6b20; color: white; }
+
+    .filter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: #ebf8ff; padding: 15px 20px; border-radius: 8px; border-left: 4px solid var(--primary); }
+    .room-info { font-weight: bold; font-size: 1.05rem; color: var(--primary-hover); }
+    .form-group { display: flex; align-items: center; gap: 10px; }
+    label { font-size: 0.9rem; font-weight: bold; color: #4a5568; }
+    input[type="date"] { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.95rem; }
+
+    .rule-notice { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; font-size: 0.85rem; color: #4a5568; margin-bottom: 20px; line-height: 1.5; }
+    .warning-msg { display: none; background: #fff5f5; color: #e53e3e; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #fed7d7; }
+
+    /* 타임테이블 스타일 */
+    .timetable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 12px; margin-bottom: 30px; }
+    .time-slot { border: 1px solid #cbd5e0; padding: 16px 10px; border-radius: 8px; text-align: center; cursor: pointer; background: white; transition: 0.2s; }
+    .time-slot:hover:not(.booked) { border-color: var(--primary); background: #ebf8ff; }
+    .time-slot.booked { background: var(--disabled); color: #4a5568; border-color: #cbd5e0; }
+    .time-slot.checked-out { background: #edf2f7; color: #a0aec0; cursor: not-allowed; }
+    .time-slot .status-text { font-size: 0.75rem; margin-top: 5px; display: block; font-weight: bold; }
+
+    /* Modal 공통 */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+    .modal-content h3 { margin-top: 0; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .modal-input { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; margin-top: 4px; margin-bottom: 12px; }
+
+    /* 주의사항 박스 */
+    .notice-box { background: #fffaf0; border: 1px solid #fbd38d; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 0.88rem; color: #742a2a; line-height: 1.6; }
+    .notice-box ul { margin: 8px 0 0 0; padding-left: 20px; }
+
+    /* Admin Panel */
+    .admin-panel { display: none; margin-top: 30px; border-top: 2px dashed #cbd5e0; padding-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid var(--border-color); padding: 10px; text-align: left; font-size: 0.85rem; }
+    th { background: #f7fafc; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .badge-pending { background: #feebc8; color: #c05621; }
+    .badge-approved { background: #c6f6d5; color: #22543d; }
+    .badge-rejected { background: #fed7d7; color: #9b2c2c; }
+    .badge-done { background: #e2e8f0; color: #4a5568; }
+
+    /* 이미지 프리뷰 */
+    .img-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e0; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>📹 영상면접실 예약 시스템</h1>
+    <button class="btn btn-admin" onclick="toggleAdmin()">조교 관리자 모드</button>
+  </header>
+
+  <div class="rule-notice">
+    📌 <strong>영상면접실 이용 수칙</strong><br>
+    • <strong>운영 요일/시간:</strong> 월~목요일 (10:00 ~ 17:00)<br>
+    • <strong>예약 제한:</strong> 사용일 기준 최소 1일 전(하루 전)까지 예약 신청 가능<br>
+    • <strong>1인당 제한:</strong> 동일 학번 기준 하루 최대 2시간(2개 교시) 이용 가능<br>
+    • <strong>퇴실 필수:</strong> 이용 종료 5분 전(55분)까지 원상복구 및 인증사진 업로드 후 퇴실 처리
+  </div>
+
+  <div class="filter-bar">
+    <div class="room-info">📍 장소: 영상면접실</div>
+    <div class="form-group">
+      <label for="dateSelect">예약 날짜:</label>
+      <input type="date" id="dateSelect" onchange="checkRulesAndRender()">
+    </div>
+  </div>
+
+  <div class="warning-msg" id="warningMsg"></div>
+  <h3>시간대 선택 (10:00 ~ 17:00)</h3>
+  <div class="timetable-grid" id="timetable"></div>
+
+  <!-- 조교 관리자 패널 -->
+  <div class="admin-panel" id="adminPanel">
+    <h2>📋 조교 관리자 대시보드</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>예약 날짜/시간</th>
+          <th>신청자 정보</th>
+          <th>사용 목적</th>
+          <th>상태</th>
+          <th>관리 & 퇴실인증</th>
+        </tr>
+      </thead>
+      <tbody id="adminTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 1. 예약 신청 모달 -->
+<div class="modal" id="bookingModal">
+  <div class="modal-content">
+    <h3>영상면접실 예약 신청</h3>
+    <p id="modalSlotInfo" style="font-weight: bold; color: var(--primary); margin-bottom: 15px;"></p>
+    
+    <label>학년/반</label>
+    <input type="text" id="userGradeClass" class="modal-input" placeholder="예: 2학년 A반">
+
+    <label>이름</label>
+    <input type="text" id="userName" class="modal-input" placeholder="홍길동">
+    
+    <label>학번</label>
+    <input type="text" id="studentId" class="modal-input" placeholder="20261234">
+    
+    <label>사용 목적</label>
+    <input type="text" id="purpose" class="modal-input" placeholder="예: 기업 취업 영상면접 촬영">
+    
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('bookingModal')">취소</button>
+      <button class="btn btn-primary" onclick="submitBooking()">신청하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 예약 내역 및 이용 주의사항 / 퇴실안내 모달 -->
+<div class="modal" id="infoModal">
+  <div class="modal-content">
+    <h3 style="color: var(--primary);" id="infoModalTitle">예약 정보 및 이용 수칙</h3>
+    <p id="infoModalSlot" style="font-weight: bold; font-size:1.05rem; margin-bottom: 5px;"></p>
+    <p id="infoModalUser" style="color: #4a5568; margin-top: 0;"></p>
+
+    <div class="notice-box">
+      <strong>⚠️ 영상면접실 필수 이용 수칙</strong>
+      <ul>
+        <li><strong>퇴실 시간 엄수:</strong> 다음 사용자를 위하여 <span id="exitTimeText" style="color:#e53e3e; font-weight:bold;"></span>까지 퇴실을 완료하셔야 합니다.</li>
+        <li><strong>청결 유지:</strong> 반드시 깨끗하게 이용해야 하며, 더럽게 사용 후 적발 시 해당 학생은 <strong>향후 영상면접실 이용이 제한</strong>됩니다.</li>
+        <li><strong>원상복구 및 퇴실 사진:</strong> 퇴실 시 책상, 의자, 지면을 원상태로 정리정돈한 후 <strong>사진을 촬영하여 업로드</strong>해야 합니다.</li>
+        <li><strong>시설물 관리:</strong> 시설물 파손 및 고장 시 해당 시간에 이용한 학생에게 책임을 물을 예정이오니 조심하여 사용 바랍니다.</li>
+      </ul>
+    </div>
+
+    <div class="modal-actions" id="infoModalActions">
+      <button class="btn" onclick="closeModal('infoModal')">닫기</button>
+      <button class="btn btn-warning" id="goCheckoutBtn">📷 퇴실 사진 업로드하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 퇴실 처리 (사진 업로드) 모달 -->
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <h3>🧹 영상면접실 퇴실 인증</h3>
+    <p style="font-size:0.88rem; color:#4a5568;">정리정돈된 영상면접실 내부 사진을 첨부해야 퇴실이 완료됩니다.</p>
+    
+    <div style="margin: 15px 0;">
+      <label style="display:block; margin-bottom:8px;">정리정돈 사진 첨부 (*필수)</label>
+      <input type="file" id="roomPhotoInput" accept="image/*" onchange="previewImage(this)">
+      <img id="photoPreview" class="img-preview" alt="정리 사진 미리보기">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('checkoutModal')">취소</button>
+      <button class="btn btn-success" id="submitCheckoutBtn" onclick="submitCheckout()" disabled>퇴실 완료하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. 조교 관리자 사진 확인 모달 -->
+<div class="modal" id="photoViewModal">
+  <div class="modal-content">
+    <h3>📷 퇴실 인증 사진 확인</h3>
+    <p id="photoViewInfo" style="font-size:0.9rem; color:#4a5568;"></p>
+    <img id="adminPhotoView" style="width:100%; border-radius:8px; border:1px solid #cbd5e0; margin-top:10px;" alt="퇴실 사진">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('photoViewModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const HOURS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+  let selectedSlot = null;
+  let activeReservation = null;
+  let isAdmin = false;
+  let currentPhotoBase64 = "";
+
+  const today = new Date();
+  document.getElementById('dateSelect').value = today.toISOString().substring(0, 10);
+
+  function getReservations() {
+    return JSON.parse(localStorage.getItem('reservations_interview') || '[]');
+  }
+
+  function saveReservations(data) {
+    localStorage.setItem('reservations_interview', JSON.stringify(data));
+  }
+
+  function checkRulesAndRender() {
+    const dateInput = document.getElementById('dateSelect').value;
+    if (!dateInput) return;
+
+    const selectedDate = new Date(dateInput + 'T00:00:00');
+    const todayZero = new Date();
+    todayZero.setHours(0,0,0,0);
+
+    const dayOfWeek = selectedDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
+      showWarning('⚠️ 영상면접실은 월요일 ~ 목요일에만 이용할 수 있습니다.');
+      return;
+    }
+
+    const diffTime = selectedDate - todayZero;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 1) {
+      showWarning('⚠️ 영상면접실은 사용일 최소 1일 전(하루 전)까지만 예약 가능합니다. (당일 예약 불가)');
+      return;
+    }
+
+    const selectedMon = new Date(selectedDate);
+    selectedMon.setDate(selectedDate.getDate() - (dayOfWeek - 1));
+
+    const openFriday = new Date(selectedMon);
+    openFriday.setDate(selectedMon.getDate() - 3);
+    openFriday.setHours(0,0,0,0);
+
+    if (todayZero < openFriday) {
+      const month = openFriday.getMonth() + 1;
+      const day = openFriday.getDate();
+      showWarning(`⚠️ 해당 주차 예약은 ${month}월 ${day}일(금)에 오픈됩니다.`);
+      return;
+    }
+
+    document.getElementById('warningMsg').style.display = 'none';
+    renderTimetable();
+  }
+
+  function showWarning(msg) {
+    const warningEl = document.getElementById('warningMsg');
+    warningEl.innerHTML = msg;
+    warningEl.style.display = 'block';
+    document.getElementById('timetable').innerHTML = '';
+  }
+
+  function renderTimetable() {
+    const date = document.getElementById('dateSelect').value;
+    const timetableEl = document.getElementById('timetable');
+    const reservations = getReservations();
+
+    timetableEl.innerHTML = '';
+
+    HOURS.forEach(time => {
+      const existing = reservations.find(r => r.date === date && r.time === time && r.status !== '거절');
+      const slotEl = document.createElement('div');
+      slotEl.className = 'time-slot';
+      
+      if (existing) {
+        if (existing.status === '퇴실완료') {
+          slotEl.classList.add('checked-out');
+          slotEl.innerHTML = `<strong>${time}</strong><span class="status-text">퇴실완료</span>`;
+          slotEl.onclick = () => openInfoModal(existing);
+        } else {
+          slotEl.classList.add('booked');
+          const statusText = existing.status === '승인완료' ? '예약마감 (수칙보기)' : '승인대기중';
+          slotEl.innerHTML = `<strong>${time}</strong><span class="status-text">${statusText}</span>`;
+          slotEl.onclick = () => openInfoModal(existing);
+        }
+      } else {
+        slotEl.innerHTML = `<strong>${time}</strong><span class="status-text" style="color:#38a169;">예약가능</span>`;
+        slotEl.onclick = () => openBookingModal(date, time);
+      }
+      
+      timetableEl.appendChild(slotEl);
+    });
+
+    if (isAdmin) renderAdminTable(reservations);
+  }
+
+  function openBookingModal(date, time) {
+    selectedSlot = { date, time };
+    document.getElementById('modalSlotInfo').innerText = `📅 ${date} | ⏰ ${time}`;
+    document.getElementById('bookingModal').style.display = 'flex';
+  }
+
+  function openInfoModal(reservation) {
+    activeReservation = reservation;
+    const hourNum = parseInt(reservation.time.split(':')[0]);
+    const exitTimeStr = `${hourNum}시 55분`;
+
+    document.getElementById('infoModalSlot').innerText = `📅 ${reservation.date} | ⏰ ${reservation.time}`;
+    document.getElementById('infoModalUser').innerText = `신청자: ${reservation.name} (${reservation.gradeClass} / ${reservation.studentId})`;
+    document.getElementById('exitTimeText').innerText = exitTimeStr;
+
+    const goCheckoutBtn = document.getElementById('goCheckoutBtn');
+    if (reservation.status === '승인완료') {
+      goCheckoutBtn.style.display = 'inline-block';
+      goCheckoutBtn.onclick = () => {
+        closeModal('infoModal');
+        openCheckoutModal();
+      };
+    } else {
+      goCheckoutBtn.style.display = 'none';
+    }
+
+    document.getElementById('infoModal').style.display = 'flex';
+  }
+
+  function openCheckoutModal() {
+    currentPhotoBase64 = "";
+    document.getElementById('roomPhotoInput').value = "";
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('submitCheckoutBtn').disabled = true;
+    document.getElementById('checkoutModal').style.display = 'flex';
+  }
+
+  function previewImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentPhotoBase64 = e.target.result;
+        const preview = document.getElementById('photoPreview');
+        preview.src = currentPhotoBase64;
+        preview.style.display = 'block';
+        document.getElementById('submitCheckoutBtn').disabled = false;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function submitCheckout() {
+    if (!currentPhotoBase64) {
+      alert('정리정돈된 영상면접실 사진을 첨부해 주세요.');
+      return;
+    }
+
+    let reservations = getReservations();
+    reservations = reservations.map(r => {
+      if (r.id === activeReservation.id) {
+        return { ...r, status: '퇴실완료', photo: currentPhotoBase64, checkoutTime: new Date().toLocaleString() };
+      }
+      return r;
+    });
+
+    saveReservations(reservations);
+    alert('퇴실 처리가 성공적으로 완료되었습니다. 수고하셨습니다!');
+    closeModal('checkoutModal');
+    checkRulesAndRender();
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  function submitBooking() {
+    const gradeClass = document.getElementById('userGradeClass').value.trim();
+    const name = document.getElementById('userName').value.trim();
+    const studentId = document.getElementById('studentId').value.trim();
+    const purpose = document.getElementById('purpose').value.trim();
+
+    if (!gradeClass || !name || !studentId || !purpose) {
+      alert('모든 입력 항목을 작성해 주세요.');
+      return;
+    }
+
+    const reservations = getReservations();
+
+    const userDailyCount = reservations.filter(r => 
+      r.date === selectedSlot.date && 
+      r.studentId === studentId && 
+      r.status !== '거절'
+    ).length;
+
+    if (userDailyCount >= 2) {
+      alert('❌ 1인당 하루 최대 2시간(2개 교시)까지만 예약할 수 있습니다.');
+      return;
+    }
+
+    reservations.push({
+      id: Date.now(),
+      room: '영상면접실',
+      ...selectedSlot,
+      gradeClass,
+      name,
+      studentId,
+      purpose,
+      status: '승인대기'
+    });
+
+    saveReservations(reservations);
+    alert('영상면접실 예약 신청이 완료되었습니다!\n조교 승인 후 이용 가능합니다.');
+    closeModal('bookingModal');
+    
+    document.getElementById('userGradeClass').value = '';
+    document.getElementById('userName').value = '';
+    document.getElementById('studentId').value = '';
+    document.getElementById('purpose').value = '';
+    checkRulesAndRender();
+  }
+
+  // 🔑 조교 관리자 모드 비밀번호: sscair
+  function toggleAdmin() {
+    if (!isAdmin) {
+      const password = prompt('조교 전용 비밀번호를 입력하세요:');
+      if (password === 'sscair') {
+        isAdmin = true;
+        document.getElementById('adminPanel').style.display = 'block';
+        renderAdminTable();
+      } else {
+        alert('비밀번호가 올바르지 않습니다.');
+      }
+    } else {
+      isAdmin = false;
+      document.getElementById('adminPanel').style.display = 'none';
+    }
+  }
+
+  function renderAdminTable(reservationsData) {
+    const reservations = reservationsData || getReservations();
+    const tbody = document.getElementById('adminTableBody');
+    tbody.innerHTML = '';
+
+    if (reservations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">신청된 내역이 없습니다.</td></tr>';
+      return;
+    }
+
+    reservations.slice().reverse().forEach(item => {
+      const tr = document.createElement('tr');
+      let badgeClass = 'badge-pending';
+      if (item.status === '승인완료') badgeClass = 'badge-approved';
+      if (item.status === '거절') badgeClass = 'badge-rejected';
+      if (item.status === '퇴실완료') badgeClass = 'badge-done';
+
+      tr.innerHTML = `
+        <td><strong>${item.date}</strong><br>${item.time}</td>
+        <td><strong>${item.name}</strong><br>(${item.gradeClass || '미입력'} / ${item.studentId})</td>
+        <td>${item.purpose}</td>
+        <td><span class="badge ${badgeClass}">${item.status}</span></td>
+        <td>
+          ${item.status === '승인대기' ? `
+            <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick="updateStatus(${item.id}, '승인완료')">승인</button>
+            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="updateStatus(${item.id}, '거절')">거절</button>
+          ` : ''}
+          ${item.photo ? `
+            <button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;" onclick="viewPhoto('${item.name}', '${item.checkoutTime}',${item.id})">📷 사진 보기</button>
+          ` : (item.status === '승인완료' ? '<span style="font-size:0.75rem; color:#718096;">퇴실 대기중</span>' : '-')}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function viewPhoto(name, time, id) {
+    const reservations = getReservations();
+    const item = reservations.find(r => r.id === id);
+    if (item && item.photo) {
+      document.getElementById('photoViewInfo').innerText = `신청자: ${name} | 퇴실 처리 시간: ${time}`;
+      document.getElementById('adminPhotoView').src = item.photo;
+      document.getElementById('photoViewModal').style.display = 'flex';
+    }
+  }
+
+  function updateStatus(id, newStatus) {
+    let reservations = getReservations();
+    reservations = reservations.map(r => r.id === id ? { ...r, status: newStatus } : r);
+    saveReservations(reservations);
+    checkRulesAndRender();
+  }
+
+  // 초기 실행
+  checkRulesAndRender();
+</script>
+</body>
+</html>
