@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>영상면접실 예약 시스템</title>
+  <!-- 1. Supabase 공식 라이브러리 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --primary: #2b6cb0;
@@ -36,7 +38,6 @@
     .rule-notice { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; font-size: 0.85rem; color: #4a5568; margin-bottom: 20px; line-height: 1.5; }
     .warning-msg { display: none; background: #fff5f5; color: #e53e3e; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #fed7d7; }
 
-    /* 타임테이블 스타일 */
     .timetable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 12px; margin-bottom: 30px; }
     .time-slot { border: 1px solid #cbd5e0; padding: 16px 10px; border-radius: 8px; text-align: center; cursor: pointer; background: white; transition: 0.2s; }
     .time-slot:hover:not(.booked) { border-color: var(--primary); background: #ebf8ff; }
@@ -44,18 +45,15 @@
     .time-slot.checked-out { background: #edf2f7; color: #a0aec0; cursor: not-allowed; }
     .time-slot .status-text { font-size: 0.75rem; margin-top: 5px; display: block; font-weight: bold; }
 
-    /* Modal 공통 */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { margin-top: 0; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
     .modal-input { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; margin-top: 4px; margin-bottom: 12px; }
 
-    /* 주의사항 박스 */
     .notice-box { background: #fffaf0; border: 1px solid #fbd38d; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 0.88rem; color: #742a2a; line-height: 1.6; }
     .notice-box ul { margin: 8px 0 0 0; padding-left: 20px; }
 
-    /* Admin Panel */
     .admin-panel { display: none; margin-top: 30px; border-top: 2px dashed #cbd5e0; padding-top: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { border: 1px solid var(--border-color); padding: 10px; text-align: left; font-size: 0.85rem; }
@@ -66,7 +64,6 @@
     .badge-rejected { background: #fed7d7; color: #9b2c2c; }
     .badge-done { background: #e2e8f0; color: #4a5568; }
 
-    /* 이미지 프리뷰 */
     .img-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e0; margin-top: 10px; display: none; }
   </style>
 </head>
@@ -98,7 +95,6 @@
   <h3>시간대 선택 (10:00 ~ 17:00)</h3>
   <div class="timetable-grid" id="timetable"></div>
 
-  <!-- 조교 관리자 패널 -->
   <div class="admin-panel" id="adminPanel">
     <h2>📋 조교 관리자 대시보드</h2>
     <table>
@@ -141,7 +137,7 @@
   </div>
 </div>
 
-<!-- 2. 예약 내역 및 이용 주의사항 / 퇴실안내 모달 -->
+<!-- 2. 예약 내역 및 이용 주의사항 모달 -->
 <div class="modal" id="infoModal">
   <div class="modal-content">
     <h3 style="color: var(--primary);" id="infoModalTitle">예약 정보 및 이용 수칙</h3>
@@ -158,14 +154,14 @@
       </ul>
     </div>
 
-    <div class="modal-actions" id="infoModalActions">
+    <div class="modal-actions">
       <button class="btn" onclick="closeModal('infoModal')">닫기</button>
       <button class="btn btn-warning" id="goCheckoutBtn">📷 퇴실 사진 업로드하기</button>
     </div>
   </div>
 </div>
 
-<!-- 3. 퇴실 처리 (사진 업로드) 모달 -->
+<!-- 3. 퇴실 처리 모달 -->
 <div class="modal" id="checkoutModal">
   <div class="modal-content">
     <h3>🧹 영상면접실 퇴실 인증</h3>
@@ -184,7 +180,7 @@
   </div>
 </div>
 
-<!-- 4. 조교 관리자 사진 확인 모달 -->
+<!-- 4. 조교 사진 확인 모달 -->
 <div class="modal" id="photoViewModal">
   <div class="modal-content">
     <h3>📷 퇴실 인증 사진 확인</h3>
@@ -197,6 +193,11 @@
 </div>
 
 <script>
+  // 🔑 Supabase 정보 추가완료!
+  const SUPABASE_URL = "https://sfvarsmscadhpntxiqvk.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_pb8QvRR4qJyO4a9HMhy_xQ_JKqi6mE8";
+  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const HOURS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
   let selectedSlot = null;
   let activeReservation = null;
@@ -206,15 +207,22 @@
   const today = new Date();
   document.getElementById('dateSelect').value = today.toISOString().substring(0, 10);
 
-  function getReservations() {
-    return JSON.parse(localStorage.getItem('reservations_interview') || '[]');
+  // DB에서 데이터 조회
+  async function getReservations() {
+    try {
+      const { data, error } = await _supabase.from('reservations').select('*');
+      if (error) {
+        console.error('Data Error:', error);
+        return [];
+      }
+      return data || [];
+    } catch (e) {
+      console.error('Supabase Error:', e);
+      return [];
+    }
   }
 
-  function saveReservations(data) {
-    localStorage.setItem('reservations_interview', JSON.stringify(data));
-  }
-
-  function checkRulesAndRender() {
+  async function checkRulesAndRender() {
     const dateInput = document.getElementById('dateSelect').value;
     if (!dateInput) return;
 
@@ -250,7 +258,7 @@
     }
 
     document.getElementById('warningMsg').style.display = 'none';
-    renderTimetable();
+    await renderTimetable();
   }
 
   function showWarning(msg) {
@@ -260,11 +268,12 @@
     document.getElementById('timetable').innerHTML = '';
   }
 
-  function renderTimetable() {
+  async function renderTimetable() {
     const date = document.getElementById('dateSelect').value;
     const timetableEl = document.getElementById('timetable');
-    const reservations = getReservations();
+    timetableEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#718096; padding:20px;">실시간 예약 정보 확인 중...</div>';
 
+    const reservations = await getReservations();
     timetableEl.innerHTML = '';
 
     HOURS.forEach(time => {
@@ -306,7 +315,7 @@
     const exitTimeStr = `${hourNum}시 55분`;
 
     document.getElementById('infoModalSlot').innerText = `📅 ${reservation.date} | ⏰ ${reservation.time}`;
-    document.getElementById('infoModalUser').innerText = `신청자: ${reservation.name} (${reservation.gradeClass} / ${reservation.studentId})`;
+    document.getElementById('infoModalUser').innerText = `신청자: ${reservation.name} (${reservation.grade_class || reservation.gradeClass} / ${reservation.student_id || reservation.studentId})`;
     document.getElementById('exitTimeText').innerText = exitTimeStr;
 
     const goCheckoutBtn = document.getElementById('goCheckoutBtn');
@@ -345,21 +354,26 @@
     }
   }
 
-  function submitCheckout() {
+  async function submitCheckout() {
     if (!currentPhotoBase64) {
       alert('정리정돈된 영상면접실 사진을 첨부해 주세요.');
       return;
     }
 
-    let reservations = getReservations();
-    reservations = reservations.map(r => {
-      if (r.id === activeReservation.id) {
-        return { ...r, status: '퇴실완료', photo: currentPhotoBase64, checkoutTime: new Date().toLocaleString() };
-      }
-      return r;
-    });
+    const { error } = await _supabase
+      .from('reservations')
+      .update({
+        status: '퇴실완료',
+        photo: currentPhotoBase64,
+        checkout_time: new Date().toLocaleString()
+      })
+      .eq('id', activeReservation.id);
 
-    saveReservations(reservations);
+    if (error) {
+      alert('퇴실 처리 실패: ' + error.message);
+      return;
+    }
+
     alert('퇴실 처리가 성공적으로 완료되었습니다. 수고하셨습니다!');
     closeModal('checkoutModal');
     checkRulesAndRender();
@@ -369,7 +383,7 @@
     document.getElementById(id).style.display = 'none';
   }
 
-  function submitBooking() {
+  async function submitBooking() {
     const gradeClass = document.getElementById('userGradeClass').value.trim();
     const name = document.getElementById('userName').value.trim();
     const studentId = document.getElementById('studentId').value.trim();
@@ -380,11 +394,11 @@
       return;
     }
 
-    const reservations = getReservations();
+    const reservations = await getReservations();
 
     const userDailyCount = reservations.filter(r => 
       r.date === selectedSlot.date && 
-      r.studentId === studentId && 
+      r.student_id === studentId && 
       r.status !== '거절'
     ).length;
 
@@ -393,18 +407,26 @@
       return;
     }
 
-    reservations.push({
-      id: Date.now(),
-      room: '영상면접실',
-      ...selectedSlot,
-      gradeClass,
-      name,
-      studentId,
-      purpose,
-      status: '승인대기'
-    });
+    const { error } = await _supabase
+      .from('reservations')
+      .insert([
+        {
+          room: '영상면접실',
+          date: selectedSlot.date,
+          time: selectedSlot.time,
+          grade_class: gradeClass,
+          name: name,
+          student_id: studentId,
+          purpose: purpose,
+          status: '승인대기'
+        }
+      ]);
 
-    saveReservations(reservations);
+    if (error) {
+      alert('예약 저장 오류: ' + error.message);
+      return;
+    }
+
     alert('영상면접실 예약 신청이 완료되었습니다!\n조교 승인 후 이용 가능합니다.');
     closeModal('bookingModal');
     
@@ -415,14 +437,13 @@
     checkRulesAndRender();
   }
 
-  // 🔑 조교 관리자 모드 비밀번호: sscair
   function toggleAdmin() {
     if (!isAdmin) {
       const password = prompt('조교 전용 비밀번호를 입력하세요:');
       if (password === 'sscair') {
         isAdmin = true;
         document.getElementById('adminPanel').style.display = 'block';
-        renderAdminTable();
+        checkRulesAndRender();
       } else {
         alert('비밀번호가 올바르지 않습니다.');
       }
@@ -432,8 +453,8 @@
     }
   }
 
-  function renderAdminTable(reservationsData) {
-    const reservations = reservationsData || getReservations();
+  async function renderAdminTable(reservationsData) {
+    const reservations = reservationsData || await getReservations();
     const tbody = document.getElementById('adminTableBody');
     tbody.innerHTML = '';
 
@@ -451,7 +472,7 @@
 
       tr.innerHTML = `
         <td><strong>${item.date}</strong><br>${item.time}</td>
-        <td><strong>${item.name}</strong><br>(${item.gradeClass || '미입력'} / ${item.studentId})</td>
+        <td><strong>${item.name}</strong><br>(${item.grade_class || item.gradeClass || '미입력'} / ${item.student_id || item.studentId})</td>
         <td>${item.purpose}</td>
         <td><span class="badge ${badgeClass}">${item.status}</span></td>
         <td>
@@ -460,7 +481,7 @@
             <button class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="updateStatus(${item.id}, '거절')">거절</button>
           ` : ''}
           ${item.photo ? `
-            <button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;" onclick="viewPhoto('${item.name}', '${item.checkoutTime}',${item.id})">📷 사진 보기</button>
+            <button class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;" onclick="viewPhoto('${item.name}', '${item.checkout_time \vert{}\vert{} item.checkoutTime}',${item.id})">📷 사진 보기</button>
           ` : (item.status === '승인완료' ? '<span style="font-size:0.75rem; color:#718096;">퇴실 대기중</span>' : '-')}
         </td>
       `;
@@ -468,8 +489,8 @@
     });
   }
 
-  function viewPhoto(name, time, id) {
-    const reservations = getReservations();
+  async function viewPhoto(name, time, id) {
+    const reservations = await getReservations();
     const item = reservations.find(r => r.id === id);
     if (item && item.photo) {
       document.getElementById('photoViewInfo').innerText = `신청자: ${name} | 퇴실 처리 시간: ${time}`;
@@ -478,10 +499,16 @@
     }
   }
 
-  function updateStatus(id, newStatus) {
-    let reservations = getReservations();
-    reservations = reservations.map(r => r.id === id ? { ...r, status: newStatus } : r);
-    saveReservations(reservations);
+  async function updateStatus(id, newStatus) {
+    const { error } = await _supabase
+      .from('reservations')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      alert('상태 변경 오류: ' + error.message);
+      return;
+    }
     checkRulesAndRender();
   }
 
