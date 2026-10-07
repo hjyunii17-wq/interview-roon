@@ -16,10 +16,8 @@
     * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, sans-serif; }
     body { background-color: var(--bg-gray); margin: 0; padding: 20px; color: #2d3748; }
     .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    
     header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; margin-bottom: 25px; }
     h1 { margin: 0; font-size: 1.4rem; color: #1a202c; }
-    
     .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
@@ -27,32 +25,26 @@
     .btn-danger { background: #e53e3e; color: white; }
     .btn-success { background: #38a169; color: white; }
     .btn-warning { background: #dd6b20; color: white; }
-
     .filter-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: #ebf8ff; padding: 15px 20px; border-radius: 8px; border-left: 4px solid var(--primary); }
     .room-info { font-weight: bold; font-size: 1.05rem; color: var(--primary-hover); }
     .form-group { display: flex; align-items: center; gap: 10px; }
     label { font-size: 0.9rem; font-weight: bold; color: #4a5568; }
     input[type="date"] { padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 0.95rem; }
-
     .rule-notice { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; font-size: 0.85rem; color: #4a5568; margin-bottom: 20px; line-height: 1.5; }
     .warning-msg { display: none; background: #fff5f5; color: #e53e3e; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #fed7d7; }
-
     .timetable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 12px; margin-bottom: 30px; }
     .time-slot { border: 1px solid #cbd5e0; padding: 16px 10px; border-radius: 8px; text-align: center; cursor: pointer; background: white; transition: 0.2s; }
     .time-slot:hover:not(.booked) { border-color: var(--primary); background: #ebf8ff; }
     .time-slot.booked { background: var(--disabled); color: #4a5568; border-color: #cbd5e0; }
     .time-slot.checked-out { background: #edf2f7; color: #a0aec0; cursor: not-allowed; }
     .time-slot .status-text { font-size: 0.75rem; margin-top: 5px; display: block; font-weight: bold; }
-
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { margin-top: 0; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
     .modal-input { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; margin-top: 4px; margin-bottom: 12px; }
-
     .notice-box { background: #fffaf0; border: 1px solid #fbd38d; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 0.88rem; color: #742a2a; line-height: 1.6; }
     .notice-box ul { margin: 8px 0 0 0; padding-left: 20px; }
-
     .admin-panel { display: none; margin-top: 30px; border-top: 2px dashed #cbd5e0; padding-top: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { border: 1px solid var(--border-color); padding: 10px; text-align: left; font-size: 0.85rem; }
@@ -62,7 +54,6 @@
     .badge-approved { background: #c6f6d5; color: #22543d; }
     .badge-rejected { background: #fed7d7; color: #9b2c2c; }
     .badge-done { background: #e2e8f0; color: #4a5568; }
-
     .img-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e0; margin-top: 10px; display: none; }
   </style>
 </head>
@@ -115,19 +106,14 @@
   <div class="modal-content">
     <h3>영상면접실 예약 신청</h3>
     <p id="modalSlotInfo" style="font-weight: bold; color: var(--primary); margin-bottom: 15px;"></p>
-    
     <label>학년/반</label>
     <input type="text" id="userGradeClass" class="modal-input" placeholder="예: 2학년 A반">
-
     <label>이름</label>
     <input type="text" id="userName" class="modal-input" placeholder="홍길동">
-    
     <label>학번</label>
     <input type="text" id="studentId" class="modal-input" placeholder="20261234">
-    
     <label>사용 목적</label>
     <input type="text" id="purpose" class="modal-input" placeholder="예: 기업 취업 영상면접 촬영">
-    
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('bookingModal')">취소</button>
       <button class="btn btn-primary" onclick="submitBooking()">신청하기</button>
@@ -140,7 +126,6 @@
     <h3 style="color: var(--primary);" id="infoModalTitle">예약 정보 및 이용 수칙</h3>
     <p id="infoModalSlot" style="font-weight: bold; font-size:1.05rem; margin-bottom: 5px;"></p>
     <p id="infoModalUser" style="color: #4a5568; margin-top: 0;"></p>
-
     <div class="notice-box">
       <strong>⚠️ 영상면접실 필수 이용 수칙</strong>
       <ul>
@@ -150,7 +135,6 @@
         <li><strong>시설물 관리:</strong> 시설물 파손 및 고장 시 해당 시간에 이용한 학생에게 책임을 물을 예정이오니 조심하여 사용 바랍니다.</li>
       </ul>
     </div>
-
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('infoModal')">닫기</button>
       <button class="btn btn-warning" id="goCheckoutBtn">📷 퇴실 사진 업로드하기</button>
@@ -162,13 +146,11 @@
   <div class="modal-content">
     <h3>🧹 영상면접실 퇴실 인증</h3>
     <p style="font-size:0.88rem; color:#4a5568;">정리정돈된 영상면접실 내부 사진을 첨부해야 퇴실이 완료됩니다.</p>
-    
     <div style="margin: 15px 0;">
       <label style="display:block; margin-bottom:8px;">정리정돈 사진 첨부 (*필수)</label>
       <input type="file" id="roomPhotoInput" accept="image/*" onchange="previewImage(this)">
       <img id="photoPreview" class="img-preview" alt="정리 사진 미리보기">
     </div>
-
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('checkoutModal')">취소</button>
       <button class="btn btn-success" id="submitCheckoutBtn" onclick="submitCheckout()" disabled>퇴실 완료하기</button>
@@ -219,45 +201,46 @@
     const dateInput = document.getElementById('dateSelect').value;
     if (!dateInput) return;
 
-    const selectedDate = new Date(dateInput + 'T00:00:00');
+    // 기기별 타임존 오류를 원천 차단하는 완벽한 날짜 객체 생성 방식
+    const [year, month, day] = dateInput.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+    selectedDate.setHours(0,0,0,0);
+
     const todayZero = new Date();
     todayZero.setHours(0,0,0,0);
 
-    // 1. 요일 체크 (월~목만 이용 가능)
+    // 1. 월~목요일 체크
     const dayOfWeek = selectedDate.getDay();
     if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
       showWarning('⚠️ 영상면접실은 월요일 ~ 목요일에만 이용할 수 있습니다.');
       return;
     }
 
-    // 2. 최소 1일 전(하루 전)까지 예약 가능
-    const diffTime = selectedDate - todayZero;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 1) {
+    // 2. 당일 및 과거 예약 원천 차단 (최소 1일 전)
+    if (selectedDate <= todayZero) {
       showWarning('⚠️ 영상면접실은 사용일 최소 1일 전(하루 전)까지만 예약 가능합니다. (당일 예약 불가)');
       return;
     }
 
-    // 3. 주차 오픈 체크 (오늘이 속한 이번 주 월요일 구하기)
-    const todayDay = todayZero.getDay();
-    const diffToTodayMon = (todayDay === 0 ? -6 : 1 - todayDay);
-    const todayMon = new Date(todayZero);
-    todayMon.setDate(todayZero.getDate() + diffToTodayMon);
+    // 3. 주차 오픈일 로직 계산
+    const todayDay = todayZero.getDay() === 0 ? 7 : todayZero.getDay();
+    const thisWeekMon = new Date(todayZero);
+    thisWeekMon.setDate(todayZero.getDate() - (todayDay - 1));
 
-    // 선택한 날짜가 속한 주차의 월요일 구하기
-    const selectedMon = new Date(selectedDate);
-    selectedMon.setDate(selectedDate.getDate() - (dayOfWeek - 1));
+    const selectedDay = selectedDate.getDay() === 0 ? 7 : selectedDate.getDay();
+    const selectedWeekMon = new Date(selectedDate);
+    selectedWeekMon.setDate(selectedDate.getDate() - (selectedDay - 1));
 
-    // 선택한 날짜가 "다음 주 이상"인 미래 주차일 경우에만 금요일 오픈 규칙 적용
-    if (selectedMon > todayMon) {
-      const openFriday = new Date(selectedMon);
-      openFriday.setDate(selectedMon.getDate() - 3); // 오픈 금요일
+    // 선택 날짜가 "다음 주 이후"인 경우에만 오픈일(전주 금요일) 체크
+    if (selectedWeekMon > thisWeekMon) {
+      const openFriday = new Date(selectedWeekMon);
+      openFriday.setDate(selectedWeekMon.getDate() - 3);
       openFriday.setHours(0,0,0,0);
 
       if (todayZero < openFriday) {
-        const month = openFriday.getMonth() + 1;
-        const day = openFriday.getDate();
-        showWarning(`⚠️ 해당 주차 예약은 ${month}월 ${day}일(금)에 오픈됩니다.`);
+        const m = openFriday.getMonth() + 1;
+        const d = openFriday.getDate();
+        showWarning(`⚠️ 해당 주차 예약은 ${m}월 ${d}일(금)에 오픈됩니다.`);
         return;
       }
     }
